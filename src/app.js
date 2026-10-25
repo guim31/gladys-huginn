@@ -72,6 +72,8 @@ export function registerHandlers(gladys, options = {}) {
 
   gladys.onConfigUpdated(
     whenReady(async (newConfig) => {
+      // Saving is the user's answer to "sign-in refused": try again.
+      hub.allowSignIn();
       await hub.reconfigure(normalizeConfig(newConfig));
     }),
   );

@@ -160,7 +160,7 @@ igualmente, una vez. No se anuncia nada en la primera lectura.
   servicio, o a una subruta que no es la de Huginn.
 - **«La dirección redirige»**: introduzca la dirección `https://`.
 - **«Este agente no es un Webhook Agent»**: «Enviar un evento a Huginn»
-  necesita un Webhook Agent (un agente con una opción `secret`).
+  necesita un Webhook Agent (un agente con una opción `secret` escrita en claro, no una credencial Liquid).
 - **«Huginn ha rechazado el evento (HTTP 401)»**: el secreto del Webhook Agent
   ha cambiado; la integración lo vuelve a leer en la lectura siguiente, pruebe
   de nuevo.

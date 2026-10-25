@@ -92,7 +92,10 @@ export function normalizeAgent(raw) {
     return null;
   }
   const options = source.options && typeof source.options === 'object' ? source.options : {};
-  const secret = text(options.secret);
+  // A Liquid secret ({% credential %}) is compared interpolated by Huginn:
+  // its raw text would be refused, so the agent is not offered as a webhook.
+  const typed = text(options.secret);
+  const secret = typed && !/\{[{%]/.test(typed) ? typed : null;
   const verbs = (text(options.verbs) ?? 'post')
     .split(',')
     .map((verb) => verb.trim().toLowerCase())
@@ -270,8 +273,16 @@ export class HuginnClient {
       return; // signed in: Devise redirects to the home page
     }
     // Refused: the form again (200 or 422), with "Invalid login or password."
-    // or "Your account is locked."
+    // or "Your account is locked." Anything else (a 502 of a proxy while
+    // Huginn restarts, a 500) is not a verdict on the password: tried again.
     const reason = flashOf(answer.body);
+    if (!reason && !/name="user\[login\]"/.test(answer.body ?? '')) {
+      throw new HuginnError(
+        answer.status >= 500 ? ERROR_KINDS.UNREACHABLE : ERROR_KINDS.HTTP,
+        `Sign-in answered HTTP ${answer.status}`,
+        { status: answer.status },
+      );
+    }
     this.refused = new HuginnError(
       ERROR_KINDS.AUTH,
       `Sign-in refused (HTTP ${answer.status})${reason ? `: ${reason}` : ''}`,
@@ -369,6 +380,8 @@ export class HuginnClient {
    */
   async eventsSince({ sinceId = 0, notBefore = 0, maxPages = 8 } = {}) {
     const events = [];
+    // Pages are offsets: an event created meanwhile shifts the next page.
+    const seen = new Set();
     for (let page = 1; page <= maxPages; page += 1) {
       const list = await this.json(`/events.json?page=${page}`);
       if (!Array.isArray(list)) {
@@ -377,6 +390,10 @@ export class HuginnClient {
       const normalized = list.map(normalizeEvent).filter(Boolean);
       let older = false;
       for (const event of normalized) {
+        if (seen.has(event.id)) {
+          continue;
+        }
+        seen.add(event.id);
         if (event.id > sinceId && event.createdAt >= notBefore) {
           events.push(event);
         } else {

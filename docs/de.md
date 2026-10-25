@@ -166,7 +166,7 @@ nichts angekündigt.
   Dienst oder auf einen Unterpfad, der nicht der von Huginn ist.
 - **„Die Adresse leitet um“**: Gib die `https://`-Adresse ein.
 - **„Dieser Agent ist kein Webhook Agent“**: „Ein Ereignis an Huginn senden“
-  braucht einen Webhook Agent (einen Agenten mit einer Option `secret`).
+  braucht einen Webhook Agent (einen Agenten mit einer Option `secret` im Klartext, kein Liquid-Credential).
 - **„Huginn hat das Ereignis abgelehnt (HTTP 401)“**: Das Secret des Webhook
   Agent hat sich geändert; die Integration liest es bei der nächsten Abfrage
   neu, versuche es erneut.

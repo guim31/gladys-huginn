@@ -265,6 +265,7 @@ test('a refused password is tried once, then not again until the configuration i
   await step(w);
   await step(w);
   assert.equal(w.huginn.refusedSignIns, 1, 'Devise locks the account after 10 failures');
+  assert.equal(fired(w, TRIGGERS.UNREACHABLE).length, 0, 'Huginn answers: not an outage');
   const report = await w.fake.action('test_connection', {});
   assert.equal(w.huginn.refusedSignIns, 2, '"Test the connection" tries again');
   assert.match(report.data.message.en, /sign-in refused/);
@@ -454,4 +455,77 @@ test('a normal cycle writes nothing at info level, and never the password or the
     info.length ? ['Event sent to Gladys inbox: HTTP 201'] : [],
     'only the user action at info',
   );
+});
+
+test('Gladys refusing an announcement (restarting): the event is announced at the next cycle, counted once', async (t) => {
+  const w = await world(t);
+  const publish = w.gladys.publishSceneEvent.bind(w.gladys);
+  w.gladys.publishSceneEvent = async () => {
+    throw new Error('connect ECONNREFUSED');
+  };
+  w.huginn.emit(AGENTS.manual, { title: 'During the restart' });
+  w.huginn.fail(AGENTS.hook, 'Boom');
+  await step(w);
+  w.gladys.publishSceneEvent = publish;
+  await step(w);
+  assert.deepEqual(
+    w.fake.sceneEvents.map((event) => event.key),
+    [TRIGGERS.EVENT, TRIGGERS.ERROR],
+  );
+  assert.equal(w.hub.events24h(), 3);
+  await step(w);
+  assert.equal(w.fake.sceneEvents.length, 2);
+});
+
+test('a proxy error on the sign-in is not a refused password: tried again', async (t) => {
+  const huginn = new FakeHuginn();
+  const request = huginn.request.bind(huginn);
+  let broken = true;
+  huginn.request = async (url, options) =>
+    broken && options.method === 'POST' && url.endsWith('/users/sign_in')
+      ? { status: 502, headers: {}, body: '<html>Bad Gateway</html>' }
+      : request(url, options);
+  const w = await world(t, { huginn });
+  assert.equal(w.fake.connectionStatus.connected, false);
+  assert.equal(w.hub.client.refused, null);
+  broken = false;
+  await step(w);
+  assert.deepEqual(w.fake.connectionStatus, { connected: true });
+});
+
+test('a refused password is not tried again after a restart, but saving the configuration tries again', async (t) => {
+  const clock = createClock();
+  const huginn = new FakeHuginn({ now: clock.now });
+  const wrong = { ...CONFIG, password: 'wrong' };
+  const first = await world(t, { huginn, clock, config: wrong });
+  await first.app.stop();
+  const second = await world(t, { huginn, clock, config: wrong, dataDir: first.dataDir });
+  assert.equal(huginn.refusedSignIns, 1, 'no new attempt at the restart');
+  assert.equal(second.fake.connectionStatus.connected, false);
+  await second.fake.configUpdated(wrong);
+  assert.equal(huginn.refusedSignIns, 2, 'saving, even unchanged, tries again');
+  await second.fake.configUpdated(CONFIG);
+  assert.deepEqual(second.fake.connectionStatus, { connected: true });
+  assert.equal(second.hub.saved.refused, undefined);
+});
+
+test('an agent whose events expired is looked up once, not at every cycle', async (t) => {
+  const huginn = new FakeHuginn();
+  huginn.agents.find((a) => a.id === AGENTS.digest).last_event_at = '2026-10-01T08:00:00.000Z';
+  const w = await world(t, { huginn });
+  await step(w);
+  await step(w);
+  const lookups = huginn.requests.filter((r) => r === `GET /agents/${AGENTS.digest}/events.json`);
+  assert.equal(lookups.length, 1);
+});
+
+test('a Webhook Agent with a Liquid secret is not offered as a webhook', async (t) => {
+  const huginn = new FakeHuginn();
+  huginn.agents.find((a) => a.id === AGENTS.hook).options.secret = '{% credential hook %}';
+  const w = await world(t, { huginn });
+  const ack = await w.fake.sceneAction('send_webhook_event', {
+    device: deviceId(w.gladys, AGENTS.hook),
+    text: 'x',
+  });
+  assert.match(ack.error, /not a Webhook Agent/);
 });

@@ -17,6 +17,7 @@
 // integration or Gladys restarted is still announced, once.
 // -----------------------------------------------------------------------------
 
+import { createHash } from 'node:crypto';
 import { DEVICE_TRANSPORTS, createLogger } from '@gladysassistant/integration-sdk';
 import {
   agentIds,
@@ -29,7 +30,7 @@ import {
   serverValues,
 } from './devices.js';
 import { excerpt, payloadText } from './excerpt.js';
-import { HuginnClient, HuginnError } from './huginn/client.js';
+import { ERROR_KINDS, HuginnClient, HuginnError } from './huginn/client.js';
 import { ProblemLog } from './problems.js';
 import {
   ACTION_TEXT,
@@ -78,6 +79,8 @@ const MAX_LOOKUPS_PER_READ = 5;
 
 const signatureOf = (config) =>
   JSON.stringify([config.url, config.username, config.password, config.allowSelfSigned]);
+// What /data keeps of refused credentials: a hash, never the password.
+const fingerprint = (signature) => createHash('sha256').update(signature).digest('hex');
 
 export class HuginnHub {
   /**
@@ -136,6 +139,7 @@ export class HuginnHub {
       inError: Array.isArray(saved.inError) ? saved.inError.filter(Number.isInteger) : [],
       hours: object(saved.hours),
       url: typeof saved.url === 'string' ? saved.url : null,
+      ...(typeof saved.refused === 'string' ? { refused: saved.refused } : {}),
     };
     await this.reconfigure(config);
   }
@@ -166,6 +170,13 @@ export class HuginnHub {
             request: this.request,
           })
         : null;
+      // Refused before a restart: not tried again at every start (Devise
+      // counts the failures until a sign-in succeeds).
+      if (this.client && this.saved.refused === fingerprint(signature)) {
+        this.client.refused = new HuginnError(ERROR_KINDS.AUTH, 'Sign-in refused before', {
+          reason: null,
+        });
+      }
       // New credentials on the same instance keep an outage under way: its
       // "answers again" must still come, and "unreachable" not twice.
       if (config.url !== previousUrl || this.client === null) {
@@ -276,10 +287,23 @@ export class HuginnHub {
     const wasError = this.error?.kind;
     this.error = { kind: err.kind, message: err.message };
     this.readAt = this.now();
-    this.failedReads += 1;
     if (wasError !== err.kind) {
       logger.warn(`Huginn: ${err.message}`);
     }
+    if (err.kind === ERROR_KINDS.AUTH && this.client?.refused && this.signature) {
+      const refused = fingerprint(this.signature);
+      if (this.saved.refused !== refused) {
+        this.saved.refused = refused;
+        this.savedKey = null;
+        this.store.save(this.saved);
+      }
+    }
+    // Only silence or a server error counts as an outage: a refused password
+    // or a wrong address is a configuration problem, shown in the status.
+    if (err.kind !== ERROR_KINDS.UNREACHABLE && err.kind !== ERROR_KINDS.HTTP) {
+      return wasError !== err.kind;
+    }
+    this.failedReads += 1;
     if (this.failedReads >= this.timings.unreachableAfter && this.unreachableSince === null) {
       this.unreachableSince = this.now();
       await this.fire(TRIGGERS.UNREACHABLE, {
@@ -329,8 +353,19 @@ export class HuginnHub {
       await this.readNewEvents(client, status);
       widgetChanged = true;
     }
+    // Reconfigured meanwhile (another instance): what follows belongs to it.
+    if (client !== this.client) {
+      return false;
+    }
     await this.lookupLastEvents(client);
+    if (client !== this.client) {
+      return false;
+    }
     await this.updateErrors(client, { announce: !first });
+    if (client !== this.client) {
+      return false;
+    }
+    delete this.saved.refused;
 
     // A deleted agent is forgotten.
     for (const key of ['last', 'errors']) {
@@ -385,6 +420,9 @@ export class HuginnHub {
     } catch (err) {
       logger.debug(`Events unreadable at the first read: ${err.message}`);
     }
+    if (client !== this.client) {
+      return;
+    }
     for (const event of events) {
       this.count(event);
       this.remember(event);
@@ -395,43 +433,61 @@ export class HuginnHub {
       .map((agent) => agent.id);
   }
 
-  /** The events created since the last read: counted, remembered, announced. */
+  /**
+   * The events created since the last read: counted, remembered, announced,
+   * oldest first. When Gladys refuses an announcement (it is restarting), the
+   * reading stops there: that event and the next ones are read again at the
+   * next cycle, so none is lost and none is counted twice.
+   */
   async readNewEvents(client, status) {
+    const since = this.saved.maxId;
     let result;
     try {
-      result = await client.eventsSince({ sinceId: this.saved.maxId, maxPages: MAX_EVENT_PAGES });
+      result = await client.eventsSince({ sinceId: since, maxPages: MAX_EVENT_PAGES });
     } catch (err) {
       // Read again at the next cycle: maxId did not move.
       logger.debug(`New events unreadable: ${err.message}`);
       return;
     }
-    const { events, complete } = result;
-    for (const event of events) {
+    if (client !== this.client) {
+      return;
+    }
+    const ordered = [...result.events].sort((a, b) => a.id - b.id);
+    const firstAnnounced = Math.max(0, ordered.length - MAX_EVENTS_PER_READ);
+    const unread = result.complete ? 0 : Math.max(0, status.newEvents - ordered.length);
+    if (firstAnnounced + unread > 0) {
+      logger.debug(`${firstAnnounced + unread} older new event(s) not announced`);
+    }
+    let done = 0;
+    for (const [index, event] of ordered.entries()) {
+      if (index >= firstAnnounced) {
+        const agent = this.agents.get(event.agentId);
+        const ok = await this.fire(TRIGGERS.EVENT, {
+          device: agentIds(this.gladys, event.agentId).device,
+          agent: agent?.name ?? `Agent ${event.agentId}`,
+          excerpt: excerpt(event.payload, 500),
+          payload: payloadText(event.payload),
+          event_id: String(event.id),
+        });
+        if (!ok || client !== this.client) {
+          break;
+        }
+      }
       this.count(event);
       this.remember(event);
+      this.saved.maxId = Math.max(this.saved.maxId, event.id);
+      done += 1;
     }
-    if (!complete && status.newEvents > events.length) {
-      // Beyond the pages read: counted in the current hour, not announced.
+    if (done === 0) {
+      return;
+    }
+    if (unread > 0) {
+      // Beyond the pages read (older ones): counted in the current hour, not announced.
       const hour = Math.floor(this.now() / HOUR) * HOUR;
-      this.saved.hours[hour] = (this.saved.hours[hour] ?? 0) + status.newEvents - events.length;
+      this.saved.hours[hour] = (this.saved.hours[hour] ?? 0) + unread;
     }
-    this.saved.maxId = Math.max(this.saved.maxId, status.maxId, ...events.map((e) => e.id));
-
-    const ordered = [...events].sort((a, b) => a.id - b.id);
-    const announced = ordered.slice(-MAX_EVENTS_PER_READ);
-    const skipped = status.newEvents - announced.length;
-    if (skipped > 0) {
-      logger.debug(`${skipped} older new event(s) not announced`);
-    }
-    for (const event of announced) {
-      const agent = this.agents.get(event.agentId);
-      await this.fire(TRIGGERS.EVENT, {
-        device: agentIds(this.gladys, event.agentId).device,
-        agent: agent?.name ?? `Agent ${event.agentId}`,
-        excerpt: excerpt(event.payload, 500),
-        payload: payloadText(event.payload),
-        event_id: String(event.id),
-      });
+    if (done === ordered.length) {
+      this.saved.maxId = Math.max(this.saved.maxId, status.maxId);
     }
   }
 
@@ -450,10 +506,16 @@ export class HuginnHub {
     for (const agent of missing.slice(0, MAX_LOOKUPS_PER_READ)) {
       try {
         const event = await client.lastEvent(agent.id);
+        if (client !== this.client) {
+          return;
+        }
         if (event) {
           this.remember(event);
           // Same second as last_event_at at most: no lookup again.
           this.saved.last[agent.id].at = Math.max(this.saved.last[agent.id].at, agent.lastEventAt);
+        } else {
+          // Its events expired (or were deleted): not asked again until a new one.
+          this.saved.last[agent.id] = { id: 0, at: agent.lastEventAt, excerpt: '', payload: '' };
         }
       } catch (err) {
         logger.debug(`Last event of agent ${agent.id} unreadable: ${err.message}`);
@@ -464,9 +526,11 @@ export class HuginnHub {
   /** The error message of the agents in error, and "an agent is in error" for the new ones. */
   async updateErrors(client, { announce }) {
     const before = new Set(this.saved.inError);
+    const inError = [];
     let lookups = 0;
     for (const agent of this.agents.values()) {
       if (!agent.inError) {
+        delete this.saved.errors[agent.id]; // a later error gets its own message
         continue;
       }
       const saved = this.saved.errors[agent.id];
@@ -474,32 +538,49 @@ export class HuginnHub {
         lookups += 1;
         try {
           const message = await client.lastError(agent.id);
+          if (client !== this.client) {
+            return;
+          }
           this.saved.errors[agent.id] = { at: agent.lastErrorAt, message: message ?? '' };
         } catch (err) {
           logger.debug(`Logs of agent ${agent.id} unreadable: ${err.message}`);
         }
       }
       if (announce && !before.has(agent.id)) {
-        const message = this.saved.errors[agent.id]?.message ?? '';
+        const message = this.errorMessage(agent) ?? '';
         logger.info(`${agent.name} is in error${message ? `: ${message}` : ''}`);
-        await this.fire(TRIGGERS.ERROR, {
+        const ok = await this.fire(TRIGGERS.ERROR, {
           device: agentIds(this.gladys, agent.id).device,
           agent: agent.name,
           error: message.slice(0, 500),
         });
+        if (client !== this.client) {
+          return;
+        }
+        if (!ok) {
+          continue; // not remembered as in error: announced at the next cycle
+        }
       }
+      inError.push(agent.id);
     }
-    this.saved.inError = [...this.agents.values()]
-      .filter((agent) => agent.inError)
-      .map((agent) => agent.id);
+    this.saved.inError = inError;
   }
 
+  /** The message of the current error of an agent, null when not read yet. */
+  errorMessage(agent) {
+    const saved = this.saved.errors[agent.id];
+    return saved && saved.at === agent.lastErrorAt && saved.message ? saved.message : null;
+  }
+
+  /** @returns {Promise<boolean>} false when Gladys refused the event */
   async fire(key, data) {
     try {
       await this.gladys.publishSceneEvent(key, data);
       this.problems.recover('events', 'Scene events accepted again');
+      return true;
     } catch (err) {
       this.problems.fail('events', `Scene event ${key} refused: ${err.message}`);
+      return false;
     }
   }
 
@@ -529,7 +610,7 @@ export class HuginnHub {
     return {
       agent,
       last: this.saved.last[agent.id] ?? null,
-      error: agent.inError ? this.saved.errors[agent.id]?.message || null : null,
+      error: agent.inError ? this.errorMessage(agent) : null,
     };
   }
 
@@ -809,9 +890,15 @@ export class HuginnHub {
     };
   }
 
+  /** The user saved the configuration or tests the connection: a new sign-in is allowed. */
+  allowSignIn() {
+    this.client?.allowSignIn();
+    delete this.saved.refused;
+  }
+
   /** "Test the connection": a new sign-in is allowed, read Huginn now, one line. */
   async testConnection() {
-    this.client?.allowSignIn();
+    this.allowSignIn();
     await this.pollNow({ publish: true });
     const message = {};
     const status = this.connectionStatus();

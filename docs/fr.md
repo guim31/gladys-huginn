@@ -161,7 +161,7 @@ quand même annoncé, une fois. Rien n'est annoncé à la toute première lectur
 - **« Aucun Huginn à cette adresse »** : l'adresse pointe vers un autre
   service, ou vers un sous-chemin qui n'est pas celui de Huginn.
 - **« L'adresse redirige »** : saisissez l'adresse en `https://`.
-- **« Cet agent n'est pas un Webhook Agent »** : « Envoyer un événement à Huginn » demande un Webhook Agent (un agent avec une option `secret`).
+- **« Cet agent n'est pas un Webhook Agent »** : « Envoyer un événement à Huginn » demande un Webhook Agent (un agent avec une option `secret` écrite en clair, pas un credential Liquid).
 - **« Huginn a refusé l'événement (HTTP 401) »** : le secret du Webhook Agent a
   changé ; l'intégration le relit à la lecture suivante, réessayez.
 - **« Fonctionne » reste éteint** : l'agent a journalisé une erreur après son

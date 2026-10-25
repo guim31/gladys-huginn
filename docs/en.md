@@ -155,7 +155,7 @@ once. Nothing is announced at the very first read.
   at a sub-path that is not the one of Huginn.
 - **"The address redirects"**: enter the `https://` address.
 - **"This agent is not a Webhook Agent"**: "Send an event to Huginn" needs a
-  Webhook Agent (an agent with a `secret` option).
+  Webhook Agent (an agent with a `secret` option written as plain text, not a Liquid credential).
 - **"Huginn refused the event (HTTP 401)"**: the secret of the Webhook Agent
   changed; the integration reads it again at the next read, try again.
 - **"Working" stays off**: the agent logged an error after its last event.

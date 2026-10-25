@@ -236,6 +236,17 @@ Created` ; mauvais secret **401** `Not Authorized` ; agent sans webhook **404** 
   `> maxId` (8 au plus), recherches ciblées (5 par cycle). `/data/huginn-state.json` : `maxId`, dernier
   événement et dernière erreur par agent, agents en erreur, comptes par heure (24 h). Premier passage :
   rien n'est annoncé ; « un agent crée un événement » : 20 au plus par lecture (les plus récents).
+- **Refus de connexion** : seul un retour du formulaire (`user[login]` ou `flash_alert`) est un refus ; un
+  502/500 de proxy est réessayé. Un refus est gardé dans `/data` (hachage SHA-256 de url + identifiants,
+  jamais le mot de passe) : pas de nouvel essai au redémarrage ; enregistrer la config (même inchangée)
+  ou « Tester la connexion » autorise un nouvel essai. Un refus n'est pas une panne (`huginn_unreachable`
+  ne compte que l'absence de réponse et les 5xx).
+- **Gladys qui refuse un événement de scène** (redémarrage) : la lecture s'arrête à cet événement,
+  `maxId` ne le dépasse pas, il est relu et annoncé au cycle suivant, compté une fois. Idem pour un agent
+  en erreur (pas mis dans `inError`). Les pages d'événements sont des offsets : dédoublonnage par id.
+- Un `secret` de Webhook Agent en Liquid (`{% credential %}`) est comparé interpolé par Huginn : l'agent
+  n'est pas proposé comme webhook. Un agent dont les événements ont expiré reçoit un marqueur (pas de
+  recherche à chaque cycle).
 - **Prettier reformate les fixtures HTML** : `test/fixtures/huginn/*.html` est dans `.prettierignore`.
 
 ## Vérifié sur un vrai Huginn
