@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-25
+
 ### Added
 
 - First version: your Huginn agents in Gladys (Gladys 5.1.0 or later). The
@@ -26,3 +28,6 @@ the notes of the version's GitHub Release.
 - Dashboard widget "Huginn events": agents in error first, then the last event
   of each agent.
 - Documentation in English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-huginn/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-huginn/releases/tag/v1.0.0
