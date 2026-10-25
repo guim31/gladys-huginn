@@ -1,67 +1,185 @@
-# Template de démonstration
+# Huginn
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+[Huginn](https://github.com/huginn/huginn) est un système d'agents libre et
+auto-hébergé qui surveillent le web pour vous et agissent sur ce qu'ils
+trouvent : une page qui change, un flux RSS, un prix, la météo, un e-mail, un
+webhook. Chaque agent crée des **événements** que d'autres agents relaient.
+Cette intégration amène vos agents dans Gladys : chacun devient un appareil
+(fonctionne, dernier événement, événements conservés, message d'erreur), des
+scènes réagissent quand **n'importe quel** agent crée un événement ou passe en
+erreur, Gladys peut envoyer un événement à un Webhook Agent ou lancer un agent,
+et un widget du tableau de bord liste les derniers événements.
 
-## Ce que vous obtenez
+Testée sur un vrai Huginn (image Docker `ghcr.io/huginn/huginn`) ; pas encore
+sur toutes les installations : vos retours sont les bienvenus dans
+[les issues](https://github.com/guim31/gladys-huginn/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+## Ce qu'il vous faut
 
-## Configuration
+- Gladys Assistant 5.1.0 ou plus récent.
+- Huginn, joignable depuis la machine de Gladys (sur le réseau local, ou sur
+  Internet en HTTPS).
+- Un compte Huginn : son identifiant (ou e-mail) et son mot de passe.
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+Huginn n'a pas de clé d'API : l'intégration se connecte avec le compte, comme
+votre navigateur, et lit les pages de l'interface en JSON. Elle ne voit que les
+agents de ce compte. Un compte dédié convient, tant que les agents à suivre lui
+appartiennent.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+## Mise en route
 
-## Actions
+### 1. Choisir le compte
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Utilisez votre propre compte Huginn, ou créez-en un pour Gladys (ses agents
+sont ceux que Gladys voit). L'intégration ne modifie jamais un agent, sauf pour
+le lancer quand une scène le demande.
 
-## Scènes
+### 2. Configurer l'intégration
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+Dans Gladys, ouvrez l'intégration, puis son onglet **Configuration** :
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+- **Adresse de Huginn** : l'adresse avec laquelle vous ouvrez Huginn, port
+  compris, par exemple `http://192.168.1.2:3000`. Une adresse copiée depuis le
+  navigateur fonctionne aussi.
+- **Identifiant ou e-mail** et **Mot de passe** : le compte ci-dessus.
+- **Intervalle d'actualisation** : la fréquence de lecture de Huginn (1 minute
+  par défaut). Trois requêtes par lecture quand rien ne s'est passé, quelques
+  autres après de nouveaux événements.
+- **Accepter les certificats auto-signés** : seulement pour une adresse en
+  `https://` dont le certificat n'est pas reconnu par votre navigateur non plus.
+- **Langue des noms** : la langue des noms des fonctionnalités, des dates et
+  des résultats de scène (français par défaut).
+
+Enregistrez, puis cliquez sur **Tester la connexion** : elle affiche le nombre
+d'agents, ceux en erreur et les événements des dernières 24 heures.
+
+Un mot de passe refusé n'est essayé **qu'une fois** : Huginn verrouille un
+compte après 10 connexions en échec. L'intégration réessaie quand vous
+enregistrez la configuration ou cliquez sur **Tester la connexion**.
+
+### 3. Ajouter les agents
+
+L'onglet **Découverte** liste un appareil **Huginn** et un appareil par agent.
+Ajoutez ceux que vous voulez voir dans Gladys. Les déclencheurs de scène
+fonctionnent pour tous les agents, ajoutés ou non.
+
+## Les appareils
+
+Chaque agent a :
+
+- **Fonctionne** : allumé tant que l'agent n'a pas d'erreur récente (une erreur
+  journalisée après son dernier événement, ou moins de 2 minutes avant, comme
+  Huginn la compte).
+- **Dernier événement** : un court extrait de son dernier événement (son titre,
+  son message ou son texte, sinon son contenu en JSON).
+- **Date du dernier événement** : la date et l'heure de son dernier événement.
+- **Événements conservés** : les événements que Huginn garde pour cet agent
+  (ils expirent après la durée réglée sur l'agent).
+- **Message d'erreur** : la première ligne de sa dernière erreur tant qu'il est
+  en erreur, « Aucune » sinon.
+
+L'appareil **Huginn** compte les **Agents**, les **Agents en erreur**, les
+**Agents désactivés**, les **Événements sur 24 h** et les **Jobs en échec (5 jours)** (les tâches de fond de Huginn qui ont échoué, tous comptes
+confondus).
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Événements Huginn** affiche les événements des dernières 24 heures
+et les agents en erreur, puis une ligne par agent, le plus récent en tête :
+nom, extrait de son dernier événement (ou son erreur), date, et un badge
+« Erreur ». Les agents en erreur passent en premier. Un appui sur une ligne
+ouvre le détail.
+
+Dans ses réglages, **Agents** le limite aux appareils choisis (seuls les
+appareils ajoutés à Gladys peuvent être choisis) ; la tuile des 24 heures
+disparaît alors, elle compte toute l'instance.
+
+## Scènes
+
+### Déclencheurs
+
+Ils se déclenchent pour tous les agents, ajoutés à Gladys ou non. Laissez
+**Agents** vide pour réagir à n'importe lequel, ou choisissez-en.
+
+- **Un agent crée un événement** : un agent Huginn a créé un événement.
+  Variables : nom de l'agent, extrait (500 caractères au plus), contenu
+  (l'événement en JSON, 1000 caractères au plus), numéro de l'événement.
+  20 événements par lecture au plus, les plus récents : un agent qui en crée
+  des centaines d'un coup n'inonde pas Gladys.
+- **Un agent passe en erreur** : un agent a journalisé une erreur et n'a créé
+  aucun événement depuis. Une fois, jusqu'à ce qu'il refonctionne. Variables :
+  nom de l'agent, message d'erreur.
+- **Huginn est injoignable** : Huginn ne répond plus (deux lectures en échec de
+  suite). Variable : la raison.
+- **Huginn répond de nouveau** : Huginn répond de nouveau, avec la durée de la
+  panne en minutes.
+
+Un événement créé pendant un redémarrage de Gladys ou de l'intégration est
+quand même annoncé, une fois. Rien n'est annoncé à la toute première lecture.
+
+### Actions
+
+- **Envoyer un événement à Huginn** : envoie un texte à un **Webhook Agent**,
+  qui en fait un événement Huginn. Un objet JSON est envoyé tel quel
+  (`{"piece": "salon"}`), tout autre texte sous la forme `{"text": "…"}`. Les
+  valeurs de la scène peuvent y être insérées. Sorties : accepté, statut HTTP,
+  réponse de Huginn. L'agent doit accepter `post` dans ses `verbs` (par
+  défaut). L'adresse du webhook, avec son secret, est lue sur l'agent : rien à
+  copier.
+- **Lancer un agent Huginn** : Huginn vérifie l'agent maintenant (une page, un
+  flux, un résumé) au lieu d'attendre sa planification. Ses événements
+  déclenchent ensuite les déclencheurs ci-dessus, à la lecture suivante.
+- **Dernier événement d'un agent** : lit le dernier événement d'un agent pour
+  les actions suivantes. Sorties : extrait, contenu (JSON), date (ISO 8601),
+  fonctionne, message d'erreur, et une phrase toute faite (« Agent : extrait »).
+
+### Idées de scènes
+
+- **Surveillance d'un prix** : déclencheur « Un agent crée un événement » sur un
+  Website Agent qui suit un prix → envoyer un message « 💶 … » avec l'« Extrait ».
+- **Gladys alimente Huginn** : quand l'alarme s'active → « Envoyer un événement à Huginn » avec `{"alarme": "on", "heure": "…"}` ; un scénario Huginn
+  l'enregistre ou l'ajoute au résumé du soir.
+- **Agent en panne** : déclencheur « Un agent passe en erreur » → envoyer un
+  message « ⚠️ Huginn : … (…) » avec « Nom de l'agent » et « Message d'erreur ».
+- **Point du matin** : chaque jour à 7 h 30 → « Lancer un agent Huginn » sur
+  l'agent météo, puis une minute plus tard « Dernier événement d'un agent » →
+  dire la « Phrase ».
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Connexion refusée »** : vérifiez l'identifiant (ou l'e-mail) et le mot de
+  passe, puis enregistrez. « Your account is locked » dans les logs de
+  l'intégration : Huginn a verrouillé le compte après trop d'échecs ;
+  déverrouillez-le (par e-mail, ou attendez une heure), puis enregistrez.
+- **« Huginn ne répond pas »** : vérifiez l'adresse et le port (3000 par
+  défaut) depuis la machine de Gladys. `localhost` désigne le conteneur de
+  l'intégration lui-même : utilisez l'adresse IP de la machine qui fait tourner
+  Huginn.
+- **« Certificat refusé »** : le certificat HTTPS est auto-signé ou expiré ;
+  cochez « Accepter les certificats auto-signés », ou utilisez l'adresse en
+  `http://` sur le réseau local.
+- **« Aucun Huginn à cette adresse »** : l'adresse pointe vers un autre
+  service, ou vers un sous-chemin qui n'est pas celui de Huginn.
+- **« L'adresse redirige »** : saisissez l'adresse en `https://`.
+- **« Cet agent n'est pas un Webhook Agent »** : « Envoyer un événement à Huginn » demande un Webhook Agent (un agent avec une option `secret`).
+- **« Huginn a refusé l'événement (HTTP 401) »** : le secret du Webhook Agent a
+  changé ; l'intégration le relit à la lecture suivante, réessayez.
+- **« Fonctionne » reste éteint** : l'agent a journalisé une erreur après son
+  dernier événement. Ouvrez ses logs dans Huginn ; il se rallume à son prochain
+  événement.
+
+## Limites
+
+- Huginn n'a pas d'API REST : l'intégration lit les pages JSON de l'interface
+  web avec une session. Une future version de Huginn pourrait les changer.
+- Un agent d'un autre compte n'est pas vu ; les jobs en échec sont comptés pour
+  toute l'instance.
+- « Fonctionne » ne suit que les erreurs journalisées ; la colonne « Working? »
+  de Huginn vérifie aussi, pour certains types d'agents, que les événements
+  arrivent assez souvent.
+- Au plus 8 pages de 25 nouveaux événements sont lues par actualisation :
+  au-delà, les événements sont comptés mais ni annoncés ni extraits.
+- Les événements des dernières 24 heures sont comptés par heure (l'heure la
+  plus ancienne compte en entier).
+- Les agents se créent, se modifient et se suppriment dans Huginn ; Gladys ne
+  fait qu'envoyer des événements aux Webhook Agents et lancer des agents.

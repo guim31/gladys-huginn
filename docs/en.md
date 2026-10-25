@@ -1,61 +1,177 @@
-# Demo Devices Template
+# Huginn
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+[Huginn](https://github.com/huginn/huginn) is a free, self-hosted system of
+agents that watch the web for you and act on what they find: a page that
+changes, an RSS feed, a price, the weather, an email, a webhook. Each agent
+creates **events** that other agents pass on. This integration brings your
+agents into Gladys: each one becomes a device (working, last event, events
+kept, error message), scenes react when **any** agent creates an event or
+falls in error, Gladys can send an event to a Webhook Agent or run an agent,
+and a dashboard widget lists the latest events.
 
-## What you get
+Tested against a real Huginn (Docker image `ghcr.io/huginn/huginn`); not yet
+on every setup: feedback welcome on
+[the issues](https://github.com/guim31/gladys-huginn/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- Gladys Assistant 5.1.0 or later.
+- Huginn, reachable from the Gladys machine (on the local network, or on the
+  Internet in HTTPS).
+- A Huginn account: its username (or email) and password.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+Huginn has no API key: the integration signs in with the account, like your
+browser, and reads the pages of the interface in JSON. It sees the agents of
+this account only. A dedicated account works, as long as the agents to follow
+belong to it.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Getting started
 
-## Actions
+### 1. Choose the account
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+Use your own Huginn account, or create one for Gladys (its agents are the ones
+Gladys sees). The integration never changes an agent, except running it when
+a scene asks for it.
 
-## Scenes
+### 2. Configure the integration
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+In Gladys, open the integration, then its **Configuration** tab:
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- **Huginn address**: the address you open Huginn with, port included, for
+  example `http://192.168.1.2:3000`. An address copied from the browser works
+  too.
+- **Username or email** and **Password**: the account above.
+- **Refresh interval**: how often Gladys reads Huginn (1 minute by default).
+  Three requests per read when nothing happened, a few more after new events.
+- **Accept self-signed certificates**: only for an `https://` address whose
+  certificate your browser does not trust either.
+- **Language of the names**: the language of the feature names, of the dates
+  and of the scene results (French by default).
+
+Save, then click **Test the connection**: it shows the number of agents, those
+in error and the events of the last 24 hours.
+
+A refused password is tried **once**: Huginn locks an account after 10 failed
+sign-ins. The integration tries again when you save the configuration or click
+**Test the connection**.
+
+### 3. Add the agents
+
+The **Discover** tab lists a **Huginn** device and one device per agent. Add
+the ones you want to see in Gladys. The scene triggers work for every agent,
+added or not.
+
+## The devices
+
+Each agent has:
+
+- **Working**: on while the agent has no recent error (an error logged after
+  its last event, or less than 2 minutes before it, as Huginn counts it).
+- **Last event**: a short excerpt of its last event (its title, message or
+  text, otherwise its content in JSON).
+- **Last event date**: the date and time of its last event.
+- **Events kept**: the events Huginn keeps for this agent (they expire after
+  the time set on the agent).
+- **Error message**: the first line of its newest error log while it is in
+  error, "None" otherwise.
+
+The **Huginn** device counts the **Agents**, the **Agents in error**, the
+**Disabled agents**, the **Events in 24 h** and the **Failed jobs (5 days)**
+(the background jobs of Huginn that failed, every account included).
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Huginn events** widget shows the events of the last 24 hours and the
+agents in error, then one row per agent, newest event first: name, excerpt of
+its last event (or its error), date, and an "Error" badge. The agents in error
+come first. A tap on a row opens the detail.
+
+In its settings, **Agents** narrows it to the devices you choose (only devices
+added to Gladys can be chosen); the 24-hour tile then disappears, it counts the
+whole instance.
+
+## Scenes
+
+### Triggers
+
+They fire for every agent, added to Gladys or not. Leave **Agents** empty to
+react to any of them, or choose some.
+
+- **An agent creates an event**: a Huginn agent created an event. Variables:
+  agent name, excerpt (500 characters at most), content (the event in JSON,
+  1000 characters at most), event number. 20 events per read at most, the
+  newest: an agent that creates hundreds at once does not flood Gladys.
+- **An agent falls in error**: an agent logged an error and created no event
+  since. Once, until it works again. Variables: agent name, error message.
+- **Huginn is unreachable**: Huginn stops answering (two failed reads in a
+  row). Variable: the reason.
+- **Huginn answers again**: Huginn answers again, with the length of the
+  outage in minutes.
+
+An event created while Gladys or the integration restarts is still announced,
+once. Nothing is announced at the very first read.
+
+### Actions
+
+- **Send an event to Huginn**: posts a text to a **Webhook Agent**, which
+  creates a Huginn event from it. A JSON object is sent as is
+  (`{"room": "living room"}`), any other text as `{"text": "…"}`. Scene values
+  can be inserted. Outputs: accepted, HTTP status, answer of Huginn. The agent
+  must accept `post` in its `verbs` (the default). The address of the webhook,
+  with its secret, is read from the agent: nothing to copy.
+- **Run a Huginn agent**: Huginn checks the agent now (a page, a feed, a
+  digest) instead of waiting for its schedule. Its events then fire the
+  triggers above, at the next read.
+- **Last event of an agent**: reads the last event of an agent for the next
+  actions. Outputs: excerpt, content (JSON), date (ISO 8601), working, error
+  message, and a ready-made sentence ("Agent: excerpt").
+
+### Scene ideas
+
+- **Price watch**: trigger "An agent creates an event" on a Website Agent that
+  follows a price → send a message "💶 …" with the "Excerpt".
+- **Gladys feeds Huginn**: when the alarm turns on → "Send an event to Huginn"
+  with `{"alarm": "on", "at": "…"}`; a Huginn scenario logs it or adds it to
+  the evening digest.
+- **Broken agent**: trigger "An agent falls in error" → send a message
+  "⚠️ Huginn: … (…)" with "Agent name" and "Error message".
+- **Morning briefing**: every day at 7:30 → "Run a Huginn agent" on the
+  weather agent, then a minute later "Last event of an agent" → say the
+  "Sentence".
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Sign-in refused"**: check the username (or email) and the password, then
+  save. "Your account is locked" in the logs of the integration: Huginn locked
+  the account after too many failures; unlock it (by email, or wait an hour),
+  then save.
+- **"Huginn does not answer"**: check the address and the port (3000 by
+  default) from the Gladys machine. `localhost` is the integration container
+  itself: use the IP address of the machine running Huginn.
+- **"Certificate refused"**: the HTTPS certificate is self-signed or expired;
+  tick "Accept self-signed certificates", or use the `http://` address on the
+  local network.
+- **"No Huginn at this address"**: the address points at another service, or
+  at a sub-path that is not the one of Huginn.
+- **"The address redirects"**: enter the `https://` address.
+- **"This agent is not a Webhook Agent"**: "Send an event to Huginn" needs a
+  Webhook Agent (an agent with a `secret` option).
+- **"Huginn refused the event (HTTP 401)"**: the secret of the Webhook Agent
+  changed; the integration reads it again at the next read, try again.
+- **"Working" stays off**: the agent logged an error after its last event.
+  Open its logs in Huginn; it turns on again at its next event.
+
+## Limits
+
+- Huginn has no REST API: the integration reads the JSON pages of the web
+  interface with a session. A future version of Huginn could change them.
+- An agent of another account is not seen; the failed jobs are counted for the
+  whole instance.
+- "Working" follows the error logs only; the "Working?" column of Huginn also
+  checks, for some agent types, that events arrive often enough.
+- At most 8 pages of 25 new events are read per refresh: beyond, the events
+  are counted but neither announced nor excerpted.
+- The events of the last 24 hours are counted by hour (the oldest hour counts
+  whole).
+- Agents are created, edited and deleted in Huginn; Gladys only sends events
+  to Webhook Agents and runs agents.

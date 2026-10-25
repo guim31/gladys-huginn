@@ -1,177 +1,687 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Huginn",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Your Huginn agents in Gladys: their events start scenes, Gladys feeds or runs them.",
+    "fr": "Vos agents Huginn dans Gladys : leurs événements lancent des scènes, Gladys les alimente.",
+    "de": "Deine Huginn-Agenten in Gladys: Ereignisse starten Szenen, Gladys füttert oder startet sie.",
+    "es": "Sus agentes de Huginn en Gladys: sus eventos inician escenas, Gladys los alimenta o los lanza."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-huginn:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-huginn/main/cover.png",
+  "categories": ["services"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Huginn",
+        "fr": "Votre Huginn",
+        "de": "Dein Huginn",
+        "es": "Su Huginn"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Huginn has no API key: the integration signs in like your browser. Enter its address and an account, then add the agents to follow from the Discover tab.",
+        "fr": "Huginn n'a pas de clé d'API : l'intégration se connecte comme votre navigateur. Saisissez son adresse et un compte, puis ajoutez les agents à suivre depuis l'onglet Découverte.",
+        "de": "Huginn hat keinen API-Schlüssel: Die Integration meldet sich wie dein Browser an. Gib seine Adresse und ein Konto ein und füge dann die zu verfolgenden Agenten im Tab „Entdecken“ hinzu.",
+        "es": "Huginn no tiene clave de API: la integración inicia sesión como su navegador. Introduzca su dirección y una cuenta, y después añada los agentes que quiera seguir desde la pestaña Descubrir."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-huginn/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Einrichtungsanleitung",
+            "es": "Guía de instalación"
+          }
+        },
+        {
+          "url": "https://github.com/huginn/huginn",
+          "label": {
+            "en": "About Huginn",
+            "fr": "À propos de Huginn",
+            "de": "Über Huginn",
+            "es": "Acerca de Huginn"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Huginn address",
+        "fr": "Adresse de Huginn",
+        "de": "Huginn-Adresse",
+        "es": "Dirección de Huginn"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "The address you open Huginn with.",
+        "fr": "L'adresse avec laquelle vous ouvrez Huginn.",
+        "de": "Die Adresse, mit der du Huginn öffnest.",
+        "es": "La dirección con la que abre Huginn."
+      },
+      "placeholder": {
+        "en": "e.g. http://192.168.1.2:3000",
+        "fr": "ex. http://192.168.1.2:3000",
+        "de": "z. B. http://192.168.1.2:3000",
+        "es": "p. ej. http://192.168.1.2:3000"
+      },
+      "required": false
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "Username or email",
+        "fr": "Identifiant ou e-mail",
+        "de": "Benutzername oder E-Mail",
+        "es": "Usuario o correo electrónico"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "The account whose agents are read. A dedicated account only sees its own agents.",
+        "fr": "Le compte dont les agents sont lus. Un compte dédié ne voit que ses propres agents.",
+        "de": "Das Konto, dessen Agenten gelesen werden. Ein eigenes Konto sieht nur seine eigenen Agenten.",
+        "es": "La cuenta cuyos agentes se leen. Una cuenta dedicada solo ve sus propios agentes."
+      },
+      "required": false
     },
     {
-      "key": "unit",
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
+      },
+      "description": {
+        "en": "A refused password is not tried again until you save the configuration: Huginn locks an account after 10 failures.",
+        "fr": "Un mot de passe refusé n'est pas réessayé avant l'enregistrement de la configuration : Huginn verrouille un compte après 10 échecs.",
+        "de": "Ein abgelehntes Passwort wird erst nach dem Speichern der Konfiguration erneut versucht: Huginn sperrt ein Konto nach 10 Fehlversuchen.",
+        "es": "Una contraseña rechazada no se vuelve a probar hasta que guarde la configuración: Huginn bloquea una cuenta tras 10 fallos."
+      },
+      "required": false
+    },
+    {
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      }
+    },
+    {
+      "key": "poll_interval",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle d'actualisation",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often Huginn is read: three requests or more each time.",
+        "fr": "La fréquence de lecture de Huginn : au moins trois requêtes à chaque fois.",
+        "de": "Wie oft Huginn gelesen wird: jedes Mal mindestens drei Anfragen.",
+        "es": "Con qué frecuencia se lee Huginn: al menos tres peticiones cada vez."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "allow_self_signed",
+      "type": "boolean",
+      "label": {
+        "en": "Accept self-signed certificates",
+        "fr": "Accepter les certificats auto-signés",
+        "de": "Selbstsignierte Zertifikate akzeptieren",
+        "es": "Aceptar certificados autofirmados"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Only for an https:// address whose certificate your browser does not trust either.",
+        "fr": "Seulement pour une adresse en https:// dont le certificat n'est pas reconnu par votre navigateur non plus.",
+        "de": "Nur für eine https://-Adresse, deren Zertifikat auch dein Browser nicht anerkennt.",
+        "es": "Solo para una dirección https:// cuyo certificado tampoco reconoce su navegador."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": false
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Language of the feature names (set when a device is added), of the states and of the scene results.",
+        "fr": "Langue des noms des fonctionnalités (fixés à l'ajout d'un appareil), des états et des résultats de scène.",
+        "de": "Sprache der Funktionsnamen (beim Hinzufügen eines Geräts festgelegt), der Zustände und der Szenenergebnisse.",
+        "es": "Idioma de los nombres de las funciones (fijados al añadir un dispositivo), de los estados y de los resultados de escena."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "agent_event",
+      "label": {
+        "en": "An agent creates an event",
+        "fr": "Un agent crée un événement",
+        "de": "Ein Agent erzeugt ein Ereignis",
+        "es": "Un agente crea un evento"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A Huginn agent created an event, with an excerpt of its content (20 events per reading at most).",
+        "fr": "Un agent Huginn a créé un événement, avec un extrait de son contenu (20 événements par lecture au plus).",
+        "de": "Ein Huginn-Agent hat ein Ereignis erzeugt, mit einem Auszug seines Inhalts (höchstens 20 Ereignisse pro Abfrage).",
+        "es": "Un agente de Huginn ha creado un evento, con un extracto de su contenido (20 eventos por lectura como máximo)."
       },
       "fields": [
         {
           "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "source": "devices",
+          "label": {
+            "en": "Agents (empty: any)",
+            "fr": "Agents (vide : tous)",
+            "de": "Agenten (leer: alle)",
+            "es": "Agentes (vacío: todos)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "agent",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Agent name",
+            "fr": "Nom de l'agent",
+            "de": "Name des Agenten",
+            "es": "Nombre del agente"
+          }
+        },
+        {
+          "key": "excerpt",
+          "type": "string",
+          "label": {
+            "en": "Excerpt",
+            "fr": "Extrait",
+            "de": "Auszug",
+            "es": "Extracto"
+          }
+        },
+        {
+          "key": "payload",
+          "type": "string",
+          "label": {
+            "en": "Content (JSON)",
+            "fr": "Contenu (JSON)",
+            "de": "Inhalt (JSON)",
+            "es": "Contenido (JSON)"
+          }
+        },
+        {
+          "key": "event_id",
+          "type": "string",
+          "label": {
+            "en": "Event number",
+            "fr": "Numéro de l'événement",
+            "de": "Nummer des Ereignisses",
+            "es": "Número del evento"
+          }
+        }
+      ]
+    },
+    {
+      "key": "agent_error",
+      "label": {
+        "en": "An agent falls in error",
+        "fr": "Un agent passe en erreur",
+        "de": "Ein Agent wird fehlerhaft",
+        "es": "Un agente pasa a tener error"
+      },
+      "description": {
+        "en": "A Huginn agent logged an error (and created no event since), with the error message.",
+        "fr": "Un agent Huginn a journalisé une erreur (sans événement depuis), avec le message d'erreur.",
+        "de": "Ein Huginn-Agent hat einen Fehler protokolliert (seitdem kein Ereignis), mit der Fehlermeldung.",
+        "es": "Un agente de Huginn ha registrado un error (sin eventos desde entonces), con el mensaje de error."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "multi_select",
+          "source": "devices",
+          "label": {
+            "en": "Agents (empty: any)",
+            "fr": "Agents (vide : tous)",
+            "de": "Agenten (leer: alle)",
+            "es": "Agentes (vacío: todos)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "agent",
+          "type": "string",
+          "label": {
+            "en": "Agent name",
+            "fr": "Nom de l'agent",
+            "de": "Name des Agenten",
+            "es": "Nombre del agente"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Error message",
+            "fr": "Message d'erreur",
+            "de": "Fehlermeldung",
+            "es": "Mensaje de error"
+          }
+        }
+      ]
+    },
+    {
+      "key": "huginn_unreachable",
+      "label": {
+        "en": "Huginn is unreachable",
+        "fr": "Huginn est injoignable",
+        "de": "Huginn ist nicht erreichbar",
+        "es": "Huginn no está accesible"
+      },
+      "description": {
+        "en": "Huginn stops answering (two failed reads in a row): your agents may no longer run.",
+        "fr": "Huginn ne répond plus (deux lectures en échec de suite) : vos agents ne tournent peut-être plus.",
+        "de": "Huginn antwortet nicht mehr (zwei fehlgeschlagene Abfragen in Folge): Deine Agenten laufen vielleicht nicht mehr.",
+        "es": "Huginn deja de responder (dos lecturas fallidas seguidas): puede que sus agentes ya no se ejecuten."
+      },
+      "variables": [
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Reason",
+            "fr": "Raison",
+            "de": "Grund",
+            "es": "Motivo"
+          }
+        }
+      ]
+    },
+    {
+      "key": "huginn_back",
+      "label": {
+        "en": "Huginn answers again",
+        "fr": "Huginn répond de nouveau",
+        "de": "Huginn antwortet wieder",
+        "es": "Huginn responde de nuevo"
+      },
+      "description": {
+        "en": "Huginn answers again after being unreachable, with the length of the outage.",
+        "fr": "Huginn répond de nouveau après avoir été injoignable, avec la durée de la panne.",
+        "de": "Huginn antwortet wieder, nachdem es nicht erreichbar war, mit der Dauer des Ausfalls.",
+        "es": "Huginn responde de nuevo tras no estar accesible, con la duración de la caída."
+      },
+      "variables": [
+        {
+          "key": "downtime_minutes",
+          "type": "number",
+          "label": {
+            "en": "Outage length (minutes)",
+            "fr": "Durée de la panne (minutes)",
+            "de": "Dauer des Ausfalls (Minuten)",
+            "es": "Duración de la caída (minutos)"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "send_webhook_event",
+      "label": {
+        "en": "Send an event to Huginn",
+        "fr": "Envoyer un événement à Huginn",
+        "de": "Ein Ereignis an Huginn senden",
+        "es": "Enviar un evento a Huginn"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Posts a text (or JSON) to a Webhook Agent, which creates a Huginn event from it.",
+        "fr": "Envoie un texte (ou du JSON) à un Webhook Agent, qui en fait un événement Huginn.",
+        "de": "Sendet einen Text (oder JSON) an einen Webhook Agent, der daraus ein Huginn-Ereignis macht.",
+        "es": "Envía un texto (o JSON) a un Webhook Agent, que lo convierte en un evento de Huginn."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Webhook Agent",
+            "fr": "Webhook Agent",
+            "de": "Webhook Agent",
+            "es": "Webhook Agent"
+          },
+          "required": true
+        },
+        {
+          "key": "text",
+          "type": "string",
+          "label": {
+            "en": "Text (or JSON)",
+            "fr": "Texte (ou JSON)",
+            "de": "Text (oder JSON)",
+            "es": "Texto (o JSON)"
+          },
+          "description": {
+            "en": "Sent as is when it is a JSON object, otherwise as {\"text\": …}. Scene values can be inserted.",
+            "fr": "Envoyé tel quel si c'est un objet JSON, sinon sous la forme {\"text\": …}. Les valeurs de la scène peuvent y être insérées.",
+            "de": "Unverändert gesendet, wenn es ein JSON-Objekt ist, sonst als {\"text\": …}. Werte der Szene können eingefügt werden.",
+            "es": "Se envía tal cual si es un objeto JSON; si no, como {\"text\": …}. Se pueden insertar valores de la escena."
+          },
+          "placeholder": {
+            "en": "e.g. The alarm is on",
+            "fr": "ex. L'alarme est activée",
+            "de": "z. B. Die Alarmanlage ist an",
+            "es": "p. ej. La alarma está activada"
+          },
           "required": true
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "success",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Accepted",
+            "fr": "Accepté",
+            "de": "Angenommen",
+            "es": "Aceptado"
+          }
+        },
+        {
+          "key": "status",
+          "type": "number",
+          "label": {
+            "en": "HTTP status",
+            "fr": "Statut HTTP",
+            "de": "HTTP-Status",
+            "es": "Estado HTTP"
+          }
+        },
+        {
+          "key": "response",
+          "type": "string",
+          "label": {
+            "en": "Answer of Huginn",
+            "fr": "Réponse de Huginn",
+            "de": "Antwort von Huginn",
+            "es": "Respuesta de Huginn"
+          }
+        }
+      ]
+    },
+    {
+      "key": "run_agent",
+      "label": {
+        "en": "Run a Huginn agent",
+        "fr": "Lancer un agent Huginn",
+        "de": "Huginn-Agenten ausführen",
+        "es": "Ejecutar un agente de Huginn"
+      },
+      "description": {
+        "en": "Huginn checks the agent now (a page, a feed, a digest) instead of waiting for its schedule.",
+        "fr": "Huginn vérifie l'agent maintenant (une page, un flux, un résumé) au lieu d'attendre sa planification.",
+        "de": "Huginn prüft den Agenten jetzt (eine Seite, einen Feed, eine Zusammenfassung), statt auf seinen Zeitplan zu warten.",
+        "es": "Huginn comprueba el agente ahora (una página, un feed, un resumen) en lugar de esperar a su programación."
+      },
+      "timeout_seconds": 30,
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Agent",
+            "fr": "Agent",
+            "de": "Agent",
+            "es": "Agente"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "get_last_event",
+      "label": {
+        "en": "Last event of an agent",
+        "fr": "Dernier événement d'un agent",
+        "de": "Letztes Ereignis eines Agenten",
+        "es": "Último evento de un agente"
+      },
+      "description": {
+        "en": "Reads the last event of an agent for the next actions: excerpt, content, date, error, and a ready-made sentence.",
+        "fr": "Lit le dernier événement d'un agent pour les actions suivantes : extrait, contenu, date, erreur, et une phrase toute faite.",
+        "de": "Liest das letzte Ereignis eines Agenten für die nächsten Aktionen: Auszug, Inhalt, Datum, Fehler und einen fertigen Satz.",
+        "es": "Lee el último evento de un agente para las acciones siguientes: extracto, contenido, fecha, error y una frase preparada."
+      },
+      "timeout_seconds": 30,
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Agent",
+            "fr": "Agent",
+            "de": "Agent",
+            "es": "Agente"
+          },
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "key": "excerpt",
+          "type": "string",
+          "label": {
+            "en": "Excerpt",
+            "fr": "Extrait",
+            "de": "Auszug",
+            "es": "Extracto"
+          }
+        },
+        {
+          "key": "payload",
+          "type": "string",
+          "label": {
+            "en": "Content (JSON)",
+            "fr": "Contenu (JSON)",
+            "de": "Inhalt (JSON)",
+            "es": "Contenido (JSON)"
+          }
+        },
+        {
+          "key": "date",
+          "type": "string",
+          "label": {
+            "en": "Date (ISO 8601)",
+            "fr": "Date (ISO 8601)",
+            "de": "Datum (ISO 8601)",
+            "es": "Fecha (ISO 8601)"
+          }
+        },
+        {
+          "key": "working",
+          "type": "boolean",
+          "label": {
+            "en": "Working",
+            "fr": "Fonctionne",
+            "de": "Funktioniert",
+            "es": "Funciona"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Error message",
+            "fr": "Message d'erreur",
+            "de": "Fehlermeldung",
+            "es": "Mensaje de error"
+          }
+        },
+        {
+          "key": "sentence",
+          "type": "string",
+          "label": {
+            "en": "Sentence",
+            "fr": "Phrase",
+            "de": "Satz",
+            "es": "Frase"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
+      "key": "latest_events",
+      "label": {
+        "en": "Huginn events",
+        "fr": "Événements Huginn",
+        "de": "Huginn-Ereignisse",
+        "es": "Eventos de Huginn"
+      },
       "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+        "en": "Agents in error first, then the last event of each agent, newest first.",
+        "fr": "Les agents en erreur d'abord, puis le dernier événement de chaque agent, le plus récent en tête.",
+        "de": "Zuerst die fehlerhaften Agenten, dann das letzte Ereignis jedes Agenten, das neueste zuerst.",
+        "es": "Primero los agentes con error, luego el último evento de cada agente, el más reciente arriba."
       },
       "icon": "activity",
-      "action_timeout_seconds": 15
+      "settings": [
+        {
+          "key": "agents",
+          "type": "multi_select",
+          "source": "devices",
+          "label": {
+            "en": "Agents (empty: all)",
+            "fr": "Agents (vide : tous)",
+            "de": "Agenten (leer: alle)",
+            "es": "Agentes (vacío: todos)"
+          },
+          "description": {
+            "en": "Empty: every agent. Only the devices added to Gladys can be chosen.",
+            "fr": "Vide : tous les agents. Seuls les appareils ajoutés à Gladys peuvent être choisis.",
+            "de": "Leer: alle Agenten. Nur die zu Gladys hinzugefügten Geräte sind wählbar.",
+            "es": "Vacío: todos los agentes. Solo se pueden elegir los dispositivos añadidos a Gladys."
+          },
+          "required": false
+        }
+      ]
     }
   ]
 }
