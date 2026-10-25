@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "webhook" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +31,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: src/app.js registers the handlers before connect()
+src/app.js                        every SDK handler -> the hub (also used by the tests)
+src/hub.js                        reading timer, new events and errors -> scene events, states, views, commands
+src/devices.js                    devices (one per agent + the instance): identity, features, names (4 languages), values
+src/huginn/client.js              Huginn web session (sign-in, CSRF), JSON pages, logs, run, Webhook Agent
+src/huginn/http.js                node:http/https request (self-signed certificates on request)
+src/excerpt.js                    readable excerpt of an event payload
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    dashboard widget `latest_events` (manifest `widgets`)
+src/texts.js                      connection, error, report, action texts (4 languages)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/store.js, src/problems.js     /data/huginn-state.json; one log line per repeated failure
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+                                  and helpers/fakeHuginn.js (shapes of test/fixtures/huginn, real answers)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +76,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, widget content, feature names, scene outputs, manifest texts, and
+  `docs/en.md`, `docs/fr.md`, `docs/de.md`, `docs/es.md`, kept in sync
+  (`test/i18n.test.js` checks the languages and the doc sections).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -197,6 +205,58 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - Les filtres de scène ne font qu'égalité et appartenance : un seuil reste le travail d'un capteur.
 - **Les clés de widgets, de déclencheurs et d'actions sont figées une fois publiées.**
 - `gladys_version` `>=5.1.0` dès qu'il y a widgets, déclencheurs ou actions de scène.
+
+## Huginn (propre à ce dépôt)
+
+- **Pas d'API REST ni de clé** : session de l'interface web (Devise). `GET /users/sign_in` donne le
+  cookie `_rails_session` et le jeton (`<meta name="csrf-token">`, champ `user[login]`), `POST
+/users/sign_in` en formulaire (`authenticity_token`, `user[login]`, `user[password]`) : **302** vers
+  `/` si accepté, **200** avec `<div id="flash_alert">Invalid login or password.</div>` sinon. Sans
+  session, une page `.json` répond **401** JSON (`Accept: application/json`), une page HTML **302**
+  vers `/users/sign_in`. **Devise verrouille le compte après 10 échecs** (`MAX_FAILED_LOGIN_ATTEMPTS`) :
+  un refus n'est plus retenté avant l'enregistrement de la config ou « Tester la connexion ».
+- Pages lues : `/agents.json?page=N` (Kaminari, **25 par page**, plus récents d'abord, **sans le champ
+  `type`** de l'agent ; `options` et `memory` y sont, avec les identifiants des agents : jetés à la
+  normalisation), `/worker_status?since_id=N` (`event_count` et `max_id` des événements `> N`,
+  `recent_failures` = jobs en échec sur 5 jours, **toute l'instance**), `/events.json?page=N` (25,
+  `created_at` décroissant), `/agents/<id>/events.json`, `/agents/<id>/logs` (**HTML seulement** : en
+  JSON, 500 ; le message est dans `data-modal-title="Error" data-modal-content="…"`, pile Ruby
+  comprise : seule la première ligne est gardée). `/events/<id>.json` répond `null` : inutilisable.
+- « En erreur » = règle `recent_error_logs?` de Huginn (`last_error_log_at` après `last_event_at - 2 min`),
+  étendue aux agents sans événement. La colonne « Working? » de Huginn ajoute des règles par type
+  (`expected_update_period_in_days`…), invisibles en JSON.
+- Écritures : `POST /agents/<id>/run` exige l'en-tête `X-CSRF-Token` (sans : **422**) ; le jeton est lu
+  sur `/about` après connexion (Devise le renouvelle à la connexion) et relu une fois sur 422. Webhook
+  Agent : `POST /users/<user_id>/web_requests/<agent_id>/<secret>` sans session, **201** `Event
+Created` ; mauvais secret **401** `Not Authorized` ; agent sans webhook **404** `not implemented`. Le
+  type n'étant pas exposé, un agent « webhook » est un agent avec une option `secret` (défaut du
+  Webhook Agent) ; `verbs` (défaut `post`) est vérifié. Le secret n'est **jamais** journalisé ni publié.
+- Les dates JSON sont dans le fuseau de Huginn (`-07:00` par défaut) : `Date.parse` suffit.
+- Cycle : agents + statut des workers (2 requêtes quand rien ne bouge), puis les pages d'événements
+  `> maxId` (8 au plus), recherches ciblées (5 par cycle). `/data/huginn-state.json` : `maxId`, dernier
+  événement et dernière erreur par agent, agents en erreur, comptes par heure (24 h). Premier passage :
+  rien n'est annoncé ; « un agent crée un événement » : 20 au plus par lecture (les plus récents).
+- **Refus de connexion** : seul un retour du formulaire (`user[login]` ou `flash_alert`) est un refus ; un
+  502/500 de proxy est réessayé. Un refus est gardé dans `/data` (hachage SHA-256 de url + identifiants,
+  jamais le mot de passe) : pas de nouvel essai au redémarrage ; enregistrer la config (même inchangée)
+  ou « Tester la connexion » autorise un nouvel essai. Un refus n'est pas une panne (`huginn_unreachable`
+  ne compte que l'absence de réponse et les 5xx).
+- **Gladys qui refuse un événement de scène** (redémarrage) : la lecture s'arrête à cet événement,
+  `maxId` ne le dépasse pas, il est relu et annoncé au cycle suivant, compté une fois. Idem pour un agent
+  en erreur (pas mis dans `inError`). Les pages d'événements sont des offsets : dédoublonnage par id.
+- Un `secret` de Webhook Agent en Liquid (`{% credential %}`) est comparé interpolé par Huginn : l'agent
+  n'est pas proposé comme webhook. Un agent dont les événements ont expiré reçoit un marqueur (pas de
+  recherche à chaque cycle).
+- **Prettier reformate les fixtures HTML** : `test/fixtures/huginn/*.html` est dans `.prettierignore`.
+
+## Vérifié sur un vrai Huginn
+
+Le 25/10/2026, `ghcr.io/huginn/huginn` (base intégrée) sur un réseau Docker privé : Webhook Agent,
+Manual Event Agent, Website Agent en erreur (hôte introuvable), Scheduler Agent, plus les agents
+d'exemple. Client réel dans un conteneur `--read-only --cap-drop ALL` : connexion, agents, statut,
+événements, dernier événement, logs, run (jeton périmé compris), webhook (bon et mauvais secret),
+mauvais mot de passe (une seule tentative), session expirée, hôte inconnu, port fermé, autre service.
+Non vérifié : une vraie instance Gladys, un proxy avec sous-chemin, des centaines d'agents.
 
 ## Store
 

@@ -1,0 +1,331 @@
+[
+  {
+    "id": 10,
+    "user_id": 1,
+    "options": {
+      "url": "http://gladys-test-huginn-nowhere.invalid/feed",
+      "mode": "all",
+      "type": "json",
+      "extract": {
+        "title": {
+          "path": "$.title"
+        }
+      },
+      "expected_update_period_in_days": 1
+    },
+    "name": "Broken page",
+    "schedule": "every_1h",
+    "events_count": 0,
+    "last_check_at": "2026-10-24T22:51:22.000-07:00",
+    "last_receive_at": null,
+    "last_checked_event_id": 2,
+    "created_at": "2026-10-24T22:51:15.000-07:00",
+    "updated_at": "2026-10-24T22:51:22.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": "2026-10-24T22:51:22.000-07:00",
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "ee2fae426becbb56b4e730c977925fb7",
+    "deactivated": false
+  },
+  {
+    "id": 11,
+    "user_id": 1,
+    "options": {
+      "action": "run",
+      "schedule": "0 3 * * *"
+    },
+    "name": "Nightly run",
+    "schedule": null,
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:51:15.000-07:00",
+    "updated_at": "2026-10-24T22:51:15.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "ed2e4730990c10d2dd282fab60b4c868",
+    "deactivated": false
+  },
+  {
+    "id": 8,
+    "user_id": 1,
+    "options": {
+      "verbs": "post",
+      "secret": "test-secret-123",
+      "payload_path": "$",
+      "expected_receive_period_in_days": 1
+    },
+    "name": "Gladys inbox",
+    "schedule": null,
+    "events_count": 1,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:51:06.000-07:00",
+    "updated_at": "2026-10-24T22:51:06.000-07:00",
+    "memory": {},
+    "last_web_request_at": "2026-10-24T22:51:06.000-07:00",
+    "keep_events_for": 0,
+    "last_event_at": "2026-10-24T22:51:06.000-07:00",
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "bf2a7104a4f88f456f0c17c88b6e2076",
+    "deactivated": false
+  },
+  {
+    "id": 9,
+    "user_id": 1,
+    "options": {},
+    "name": "Manual alerts",
+    "schedule": null,
+    "events_count": 1,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:51:06.000-07:00",
+    "updated_at": "2026-10-24T22:51:06.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": "2026-10-24T22:51:06.000-07:00",
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "15e96b931414d63a8ed09bf81a2a1c15",
+    "deactivated": false
+  },
+  {
+    "id": 1,
+    "user_id": 1,
+    "options": {
+      "rules": [
+        {
+          "path": "$.conditions",
+          "type": "regex",
+          "value": "rain|storm"
+        }
+      ],
+      "message": "Just so you know, it looks like '{{conditions}}' tomorrow in {{location}}",
+      "expected_receive_period_in_days": "2"
+    },
+    "name": "Rain Notifier",
+    "schedule": null,
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "361ee2e955d4726b52c8b044d4f75e25",
+    "deactivated": false
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "options": {
+      "url": "https://xkcd.com",
+      "mode": "on_change",
+      "extract": {
+        "url": {
+          "css": "#comic img",
+          "value": "@src"
+        },
+        "title": {
+          "css": "#comic img",
+          "value": "@alt"
+        },
+        "hovertext": {
+          "css": "#comic img",
+          "value": "@title"
+        }
+      },
+      "expected_update_period_in_days": 5
+    },
+    "name": "XKCD Source",
+    "schedule": "every_1d",
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "505c9bba65507c40e5786afff36f688c",
+    "deactivated": false
+  },
+  {
+    "id": 3,
+    "user_id": 1,
+    "options": {
+      "subject": "Your Afternoon Digest",
+      "expected_receive_period_in_days": "7"
+    },
+    "name": "Afternoon Digest",
+    "schedule": "5pm",
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "65e8ae4533881537de3c346b5178b75d",
+    "deactivated": false
+  },
+  {
+    "id": 4,
+    "user_id": 1,
+    "options": {
+      "subject": "Your Morning Digest",
+      "expected_receive_period_in_days": "30"
+    },
+    "name": "Morning Digest",
+    "schedule": "6am",
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "b34eaee75d8dc67843c3bd257c213852",
+    "deactivated": false
+  },
+  {
+    "id": 5,
+    "user_id": 1,
+    "options": {
+      "api_key": "put-your-key-here",
+      "location": "42.3601,-71.0589"
+    },
+    "name": "SF Weather Agent",
+    "schedule": "10pm",
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "bdae6dfdf9d01a123ddd513e695fd466",
+    "deactivated": false
+  },
+  {
+    "id": 6,
+    "user_id": 1,
+    "options": {
+      "url": "https://www.filmjabber.com/rss/rss-trailers.php",
+      "mode": "on_change",
+      "type": "xml",
+      "extract": {
+        "url": {
+          "value": "string(.)",
+          "xpath": "/rss/channel/item/link"
+        },
+        "title": {
+          "value": "string(.)",
+          "xpath": "/rss/channel/item/title"
+        }
+      },
+      "expected_update_period_in_days": 5
+    },
+    "name": "FilmJabber Trailer Source",
+    "schedule": "every_1d",
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 0,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "e88caf57d7f1c565d8d4bf5fc04572ec",
+    "deactivated": false
+  },
+  {
+    "id": 7,
+    "user_id": 1,
+    "options": {
+      "mode": "clean",
+      "matchers": [],
+      "instructions": {
+        "message": "<h2>{{title}}</h2><img src=\"https:{{url}}\"/> <p>{{hovertext}}</p>"
+      }
+    },
+    "name": "Comic Formatter",
+    "schedule": null,
+    "events_count": 0,
+    "last_check_at": null,
+    "last_receive_at": null,
+    "last_checked_event_id": null,
+    "created_at": "2026-10-24T22:50:23.000-07:00",
+    "updated_at": "2026-10-24T22:50:23.000-07:00",
+    "memory": {},
+    "last_web_request_at": null,
+    "keep_events_for": 2592000,
+    "last_event_at": null,
+    "last_error_log_at": null,
+    "propagate_immediately": false,
+    "disabled": false,
+    "service_id": null,
+    "guid": "d86b069650edadfc61db9df767c8b65c",
+    "deactivated": false
+  }
+]

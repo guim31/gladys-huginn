@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in - Huginn</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" href="/assets/application-163ed15a22c7231f7fdd2961a778bd37c05eca732b298453359c0917108413c9.css" media="all" />
+    <script src="/assets/application-2ec424ad15a89537121dbded1d21c08f0bcb35042cbcbfb1a4f4750c813994a6.js"></script>
+    <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="s_u7kjArmV6rkFGfRqRLOxL4VfOlapZDaJo-YmJqNC6KgPCKvLIbokurHAmVpStV_9pBm6z_9jcsoqE3gz9RiA" />
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/vnd.microsoft.icon" href="/favicon.ico" sizes="16x16">
+    <link rel="icon" type="image/png" href="/android-chrome-48x48.png" sizes="48x48">
+    <link rel="icon" type="image/png" href="/android-chrome-192x192.png" sizes="192x192">
+    <link rel="manifest" href="/manifest.json">
+    
+    
+    
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+  <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+    <span class="sr-only">Toggle navigation</span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+  </button>
+  <a class="navbar-brand" href="/">Huginn</a>
+</div>
+
+<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+  
+  
+  <ul class="nav navbar-nav navbar-right">
+    
+    <li class="dropdown">
+      <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+        Account
+        <b class="caret"></b>
+      </a>
+      <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+        <li>
+            <a tabindex="-1" href="/users/sign_up">Sign up</a>
+        </li>
+        <li>
+          <a tabindex="-1" href="https://github.com/huginn/huginn">About</a>
+        </li>
+
+        <li>
+            <a tabindex="-1" href="/users/sign_in">Login</a>
+        </li>
+      </ul>
+    </li>
+
+  </ul>
+</div>
+
+      </div>
+    </nav>
+
+    <div id="main" role="main">
+      <div class="container">
+        <div class="row">
+          
+        </div>
+      </div>
+
+      <div id="main-content">
+        
+<div class='row'>
+  <div class='col-md-6 col-md-offset-3'>
+    <div class='well'>
+
+      <h2>Log in</h2>
+
+      <form class="form-horizontal" id="new_user" role="form" action="/users/sign_in" accept-charset="UTF-8" method="post"><input type="hidden" name="authenticity_token" value="iIeE8BoQZeLgGu68fPhOudX5EXoJRigdSTKF4kEJNlGJE2qNQr-p2pYcYZYsVQE99Go_OFHLVEwX4RoSYDyf0w" />
+        <div class="form-group">
+          <label class="col-md-2 col-md-offset-2 control-label" for="user_login">Login</label>
+          <div class="col-md-6">
+            <input autofocus="autofocus" class="form-control" type="text" name="user[login]" id="user_login" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-md-2 col-md-offset-2 control-label" for="user_password">Password</label>
+          <div class="col-md-6">
+            <input class="form-control" type="password" name="user[password]" id="user_password" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-md-offset-4 col-md-10">
+              <div class="checkbox">
+                <label>
+                  <input name="user[remember_me]" type="hidden" value="0" /><input type="checkbox" value="1" name="user[remember_me]" id="user_remember_me" /> <label for="user_remember_me">Remember me</label>
+                </label>
+              </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-md-offset-4 col-md-10">
+            <input type="submit" name="commit" value="Log in" class="btn btn-default" data-disable-with="Log in" />
+          </div>
+        </div>
+</form>
+      <hr>
+
+      
+  <a href="/users/sign_up">Sign up</a><br />
+
+  <a href="/users/password/new">Forgot your password?</a><br />
+
+
+  <a href="/users/unlock/new">Didn&#39;t receive unlock instructions?</a><br />
+
+    </div>
+  </div>
+</div>
+
+      </div>
+      
+    </div>
+
+    <script>
+      window.agentPaths = {};
+      window.agentSearchItems = [];
+    </script>
+  </body>
+</html>
